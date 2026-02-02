@@ -23,6 +23,33 @@ const determinant = (matrix) => {
   return det;
 };
 
+const adjugate = (matrix) => {
+  const n = matrix.length;
+  if (n === 1) return [[1]];
+  
+  const cofactors = createEmptyMatrix(n, n);
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      const minor = matrix
+        .filter((_, row) => row !== i)
+        .map(row => row.filter((_, col) => col !== j));
+      cofactors[i][j] = Math.pow(-1, i + j) * determinant(minor);
+    }
+  }
+  return transpose(cofactors);
+};
+
+const inverse = (matrix) => {
+  const n = matrix.length;
+  if (n !== matrix[0].length) return null;
+  
+  const det = determinant(matrix);
+  if (det === 0) return null; 
+  
+  const adj = adjugate(matrix);
+  return adj.map(row => row.map(val => val / det));
+};
+
 // Transpose matrix
 const transpose = (matrix) => {
   const rows = matrix.length;
@@ -513,10 +540,29 @@ export default function MatrixCalculator() {
 
   const tabs = [
     { id: 'determinant', label: 'Wyznacznik', icon: '|A|' },
+    { id: 'inverse', label: 'Odwrotna', icon: 'A⁻¹' },
     { id: 'transpose', label: 'Transpozycja', icon: 'Aᵀ' },
     { id: 'add', label: 'Dodawanie', icon: '+' },
     { id: 'multiply', label: 'Mnożenie', icon: '×' },
   ];
+
+  const calcInverse = () => {
+    setError('');
+    if (matrixA.length !== matrixA[0].length) {
+      setError('Macierz musi być kwadratowa');
+      setResult(null);
+      return;
+    }
+    const det = determinant(matrixA);
+    if (det === 0) {
+      setError('Macierz jest osobliwa (det = 0) - nie ma odwrotności');
+      setResult(null);
+      return;
+    }
+    const inv = inverse(matrixA);
+    setResult(inv);
+    setResultLabel('Macierz odwrotna (A⁻¹)');
+  };
 
   const needsSecondMatrix = ['add', 'multiply'].includes(activeTab);
 
@@ -601,6 +647,11 @@ export default function MatrixCalculator() {
                 Oblicz wyznacznik
               </Button>
             )}
+            {activeTab === 'inverse' && (
+              <Button onClick={calcInverse} disabled={rowsA !== colsA}>
+                Oblicz macierz odwrotną
+              </Button>
+            )}
             {activeTab === 'transpose' && (
               <Button onClick={calcTranspose}>Transponuj macierz</Button>
             )}
@@ -618,6 +669,12 @@ export default function MatrixCalculator() {
               </Button>
             )}
           </div>
+
+          {activeTab === 'inverse' && rowsA !== colsA && (
+            <p style={styles.warning}>
+              ⚠️ Macierz odwrotną można obliczyć tylko dla macierzy kwadratowej
+            </p>
+          )}
 
           {activeTab === 'determinant' && rowsA !== colsA && (
             <p style={styles.warning}>
